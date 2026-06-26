@@ -1,0 +1,21 @@
+venv/
+
+# Ignore SQLite database
+db.sqlite3
+**/db.sqlite3
+
+
+# migration files
+server/administrator/migrations/*
+
+# Ignore all migration files except for the __init__.py file
+!server/administrator/migrations/__init__.py
+
+
+# macOS system files
+.DS_Store
+
+# VSCode
+.vscode/
+
+

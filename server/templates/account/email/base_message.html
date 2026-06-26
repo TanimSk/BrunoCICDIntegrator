@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Email</title>
+    {% load i18n %}{% autoescape off %}
+    <style>
+    .header {
+        border-radius: 0.5rem;
+        background: linear-gradient(0deg, #2b0098, #9900ae);
+        color: #ffffff;
+        padding: 5px 0;
+        text-align: center;
+      }
+      .header h1 {
+        margin: 0.5rem;
+      }
+      .message {
+        padding: 20px;
+        border-radius: 0.5rem;
+        margin-top: 20px;
+        background: rgb(237, 237, 237);
+      }
+    </style>
+</head>
+<body>    
+    <div class="header">
+        <h1>ResQ</h1>
+    </div>
+
+    <div class="message">
+        {% blocktrans with site_name=current_site.name %}
+        Hi from {{ site_name }}!
+        <br>
+        {% endblocktrans %}
+        {% block content %}{% endblock %}
+        {% blocktrans with site_name=current_site.name site_domain=current_site.domain %}        
+        Thank you for using {{ site_name }}!
+        <br>        
+        {% endblocktrans %}
+        {% endautoescape %}
+</div>    
+</body>
+</html>
+
+
