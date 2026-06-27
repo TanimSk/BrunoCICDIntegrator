@@ -1,4 +1,4 @@
-from django.db.models import Q
+from django.db.models import Q, Sum
 
 from rest_framework import status
 from rest_framework.permissions import AllowAny
@@ -33,6 +33,14 @@ class FoodListCreateView(APIView):
         elif price_order == "desc":
             foods = foods.order_by("-price")
 
+        analysis = {
+            "total_food": foods.count(),
+            "available_food_calories_sum": foods.filter(is_available=True).aggregate(
+                total=Sum("calories")
+            )["total"]
+            or 0,
+        }
+
         paginator = StandardResultsSetPagination()
         paginated_foods = paginator.paginate_queryset(foods, request)
         serializer = FoodSerializer(paginated_foods, many=True)
@@ -47,6 +55,7 @@ class FoodListCreateView(APIView):
                     "previous": paginator.get_previous_link(),
                     "num_pages": paginator.page.paginator.num_pages,
                     "current_page": paginator.page.number,
+                    "analysis": analysis,
                     "results": serializer.data,
                 },
             },
