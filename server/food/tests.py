@@ -46,3 +46,61 @@ class FoodListCreateViewTests(TestCase):
                 "available_food_calories_sum": 770,
             },
         )
+
+    def test_category_view_returns_unique_catagories_for_view_param(self):
+        Food.objects.create(
+            name="Veggie Burger",
+            description="Vegetarian burger",
+            category="Fast Food",
+            price="7.99",
+            calories=450,
+            is_available=True,
+        )
+        Food.objects.create(
+            name="Chicken Wrap",
+            description="Grilled chicken wrap",
+            category="Wrap",
+            price="6.50",
+            calories=320,
+            is_available=True,
+        )
+        Food.objects.create(
+            name="Another Burger",
+            description="Burger variant",
+            category="Fast Food",
+            price="8.50",
+            calories=500,
+            is_available=True,
+        )
+
+        response = self.client.get("/food/catagory/?view=catagory")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.data["success"])
+        self.assertEqual(response.data["data"]["catagories"], ["Fast Food", "Wrap"])
+
+    def test_category_view_returns_foods_by_catagory_name(self):
+        Food.objects.create(
+            name="Veggie Burger",
+            description="Vegetarian burger",
+            category="Fast Food",
+            price="7.99",
+            calories=450,
+            is_available=True,
+        )
+        Food.objects.create(
+            name="Chicken Wrap",
+            description="Grilled chicken wrap",
+            category="Wrap",
+            price="6.50",
+            calories=320,
+            is_available=True,
+        )
+
+        response = self.client.get("/food/catagory/?catagory=fast food")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.data["success"])
+        self.assertEqual(response.data["data"]["catagory"], "fast food")
+        self.assertEqual(response.data["data"]["count"], 1)
+        self.assertEqual(response.data["data"]["results"][0]["name"], "Veggie Burger")

@@ -78,6 +78,56 @@ class FoodListCreateView(APIView):
             )
 
 
+class CategoryAPIView(APIView):
+    authentication_classes = []
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        view_param = (request.query_params.get("view") or "").strip().lower()
+        catagory_param = (request.query_params.get("catagory") or "").strip()
+
+        if view_param == "catagory":
+            catagories = (
+                Food.objects.exclude(category__isnull=True)
+                .exclude(category__exact="")
+                .values_list("category", flat=True)
+                .distinct()
+                .order_by("category")
+            )
+            return Response(
+                {
+                    "success": True,
+                    "data": {
+                        "catagories": list(catagories),
+                    },
+                },
+                status=status.HTTP_200_OK,
+            )
+
+        if catagory_param:
+            foods = Food.objects.filter(category__iexact=catagory_param)
+            serializer = FoodSerializer(foods, many=True)
+            return Response(
+                {
+                    "success": True,
+                    "data": {
+                        "catagory": catagory_param,
+                        "count": foods.count(),
+                        "results": serializer.data,
+                    },
+                },
+                status=status.HTTP_200_OK,
+            )
+
+        return Response(
+            {
+                "success": False,
+                "message": "Use query param view=catagory or catagory=<category name>.",
+            },
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+
 class FoodDetailView(APIView):
     authentication_classes = []
     permission_classes = [AllowAny]
