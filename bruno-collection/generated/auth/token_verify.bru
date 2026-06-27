@@ -1,0 +1,26 @@
+meta {
+  name: Verify JWT Token
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{baseUrl}}/api/token/verify/
+  body: json
+  auth: inherit
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "token": "accessTokenExample"
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

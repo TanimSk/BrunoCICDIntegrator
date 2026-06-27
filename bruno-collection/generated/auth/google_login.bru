@@ -1,0 +1,27 @@
+meta {
+  name: Google OAuth Login
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/rest-auth/google/
+  body: json
+  auth: inherit
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "access_token": "googleAccessTokenExample",
+    "id_token": "googleIdTokenExample"
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

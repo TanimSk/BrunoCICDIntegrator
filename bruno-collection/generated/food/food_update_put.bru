@@ -1,0 +1,31 @@
+meta {
+  name: Update Food Item (PUT)
+  type: http
+  seq: 10
+}
+
+put {
+  url: {{baseUrl}}/food/1/
+  body: json
+  auth: inherit
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "name": "Veggie Pizza",
+    "description": "Pizza with assorted fresh vegetables.",
+    "category": "Pizza",
+    "price": 11.25,
+    "calories": 280,
+    "is_available": true
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

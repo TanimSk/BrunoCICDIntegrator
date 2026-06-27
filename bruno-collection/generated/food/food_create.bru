@@ -1,0 +1,31 @@
+meta {
+  name: Create Food Item
+  type: http
+  seq: 8
+}
+
+post {
+  url: {{baseUrl}}/food/
+  body: json
+  auth: inherit
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "name": "Margherita Pizza",
+    "description": "Classic pizza with tomato sauce and mozzarella cheese.",
+    "category": "Pizza",
+    "price": 9.99,
+    "calories": 300,
+    "is_available": true
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

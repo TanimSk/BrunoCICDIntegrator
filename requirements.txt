@@ -11,6 +11,7 @@ psycopg2-binary
 PyJWT==2.8.0
 requests==2.31.0
 requests-oauthlib==1.3.1
+openai
 pillow==11.2.1
 weasyprint==65.1
 cloudinary==1.44.0

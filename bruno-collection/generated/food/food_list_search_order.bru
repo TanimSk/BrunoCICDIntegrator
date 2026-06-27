@@ -1,0 +1,16 @@
+meta {
+  name: List Food Items with Search and Price Ordering
+  type: http
+  seq: 7
+}
+
+get {
+  url: {{baseUrl}}/food/?search=pizza&price_order=asc
+  body: none
+  auth: inherit
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}
