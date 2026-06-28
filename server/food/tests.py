@@ -104,3 +104,35 @@ class FoodListCreateViewTests(TestCase):
         self.assertEqual(response.data["data"]["catagory"], "fast food")
         self.assertEqual(response.data["data"]["count"], 1)
         self.assertEqual(response.data["data"]["results"][0]["name"], "Veggie Burger")
+
+    def test_food_of_day_returns_404_when_no_food_exists(self):
+        response = self.client.get("/food/food-of-day/")
+
+        self.assertEqual(response.status_code, 404)
+        self.assertFalse(response.data["success"])
+        self.assertEqual(response.data["message"], "No food items found.")
+
+    def test_food_of_day_returns_a_random_food_item(self):
+        first_food = Food.objects.create(
+            name="Veggie Burger",
+            description="Vegetarian burger",
+            category="Fast Food",
+            price="7.99",
+            calories=450,
+            is_available=True,
+        )
+        second_food = Food.objects.create(
+            name="Chicken Wrap",
+            description="Grilled chicken wrap",
+            category="Wrap",
+            price="6.50",
+            calories=320,
+            is_available=True,
+        )
+
+        response = self.client.get("/food/food-of-day/")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.data["success"])
+        self.assertEqual(response.data["message"], "Food of the day selected successfully.")
+        self.assertIn(response.data["data"]["id"], {first_food.id, second_food.id})

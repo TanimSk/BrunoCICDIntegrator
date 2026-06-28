@@ -128,6 +128,34 @@ class CategoryAPIView(APIView):
         )
 
 
+class FoodOfDayAPIView(APIView):
+    authentication_classes = []
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        food = Food.objects.order_by("?").first()
+
+        if food is None:
+            return Response(
+                {
+                    "success": False,
+                    "message": "No food items found.",
+                },
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        serializer = FoodSerializer(food)
+
+        return Response(
+            {
+                "success": True,
+                "message": "Food of the day selected successfully.",
+                "data": serializer.data,
+            },
+            status=status.HTTP_200_OK,
+        )
+
+
 class FoodDetailView(APIView):
     authentication_classes = []
     permission_classes = [AllowAny]
