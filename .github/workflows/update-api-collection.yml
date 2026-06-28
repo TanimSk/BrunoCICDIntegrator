@@ -1,154 +1,103 @@
-name: 🤖 AI — Changelog + Bruno Collection Updater
+name: Update API Collection
 
 on:
   push:
-    branches: [main, master, develop]
-  workflow_dispatch:
-    inputs:
-      model:
-        description: "OpenAI model"
-        required: false
-        default: "gpt-4o-mini"
-        type: choice
-        options:
-          - gpt-4o-mini
-          - gpt-4o
-          - gpt-4-turbo
-          - gpt-4.1
-          - gpt-4.1-mini
-          - gpt-3.5-turbo
-      collection_dir:
-        description: "Bruno collection directory"
-        required: false
-        default: "bruno-collection"
-      changelog_file:
-        description: "Changelog file path"
-        required: false
-        default: "CHANGELOG.md"
-      dry_run:
-        description: "Dry run — print output without writing files or committing"
-        required: false
-        default: "false"
-        type: boolean
+    branches:
+      - "**"
 
-env:
-  DEFAULT_MODEL: "gpt-4o-mini"
-  COLLECTION_DIR: "bruno-collection"
-  CHANGELOG_FILE: "CHANGELOG.md"
+permissions:
+  contents: read
 
-# ── Job 1: Gate on commit message ─────────────────────────────────────────────
 jobs:
-  check-trigger:
-    name: Check commit message
+  update-api-collection:
     runs-on: ubuntu-latest
-    outputs:
-      should_run: ${{ steps.check.outputs.should_run }}
-    steps:
-      - name: 🔎 Inspect commit message
-        id: check
-        run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            echo "should_run=true" >> "$GITHUB_OUTPUT"
-            echo "✅ Manual trigger — running unconditionally."
-            exit 0
-          fi
-
-          MSG="${{ github.event.head_commit.message }}"
-          echo "Commit message: $MSG"
-
-          if echo "$MSG" | grep -qi "make collection"; then
-            echo "should_run=true" >> "$GITHUB_OUTPUT"
-            echo "✅ 'make collection' found — pipeline will run."
-          else
-            echo "should_run=false" >> "$GITHUB_OUTPUT"
-            echo "⏭️  'make collection' not in commit message — skipping."
-          fi
-
-# ── Job 2: Two-stage AI pipeline ──────────────────────────────────────────────
-  run-pipeline:
-    name: Run AI pipeline
-    runs-on: ubuntu-latest
-    needs: check-trigger
-    if: needs.check-trigger.outputs.should_run == 'true'
-    permissions:
-      contents: write
 
     steps:
-      - name: 📥 Checkout (full history)
+      - name: Checkout repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: 🐍 Set up Python 3.11
+      - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-          cache: "pip"
-          cache-dependency-path: "scripts/requirements.txt"
 
-      - name: 📦 Install dependencies
-        run: pip install -r scripts/requirements.txt
+      - name: Install script dependencies
+        run: python -m pip install --upgrade pip && pip install -r scripts/requirements.txt
 
-      # ── Stage 1: AI writes changelog entry ──────────────────────────────────
-      - name: 📝 Stage 1 — AI writes changelog entry
-        run: python scripts/update_collection.py --stage changelog
+      - name: Inspect commit messages
+        id: inspect
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json
+          import os
+          import subprocess
+          from pathlib import Path
+
+          repo_root = Path(os.environ["GITHUB_WORKSPACE"])
+          event_path = Path(os.environ["GITHUB_EVENT_PATH"])
+          event = json.loads(event_path.read_text(encoding="utf-8"))
+          before = str(event.get("before", ""))
+          after = str(event.get("after") or os.environ.get("GITHUB_SHA", ""))
+          marker = "sync bru"
+
+          messages = []
+          if before and before != "0000000000000000000000000000000000000000" and after:
+              result = subprocess.run(
+                  ["git", "log", "--format=%s", "--reverse", f"{before}..{after}"],
+                  cwd=repo_root,
+                  check=False,
+                  capture_output=True,
+                  text=True,
+              )
+              if result.returncode == 0:
+                  messages = [line.strip() for line in result.stdout.splitlines() if line.strip()]
+
+          if not messages:
+              commits = event.get("commits", [])
+              messages = [
+                  str(commit.get("message", "")).splitlines()[0]
+                  for commit in commits
+                  if str(commit.get("message", "")).strip()
+              ]
+
+          latest_message = messages[-1] if messages else ""
+          latest_has_marker = marker in latest_message.lower()
+          marker_positions = [index for index, message in enumerate(messages) if marker in message.lower()]
+
+          should_run = bool(messages) and latest_has_marker
+          mode = "skip"
+          if should_run:
+              mode = "full" if marker_positions and marker_positions[0] == len(messages) - 1 else "sync"
+
+          output_path = Path(os.environ["GITHUB_OUTPUT"])
+          with output_path.open("a", encoding="utf-8") as handle:
+              handle.write(f"should_run={'true' if should_run else 'false'}\n")
+              handle.write(f"mode={mode}\n")
+
+          print(f"latest_message={latest_message}")
+          print(f"message_count={len(messages)}")
+          print(f"marker_count={len(marker_positions)}")
+          print(f"should_run={should_run}")
+          print(f"mode={mode}")
+          PY
+
+      - name: Generate project understanding
+        if: steps.inspect.outputs.should_run == 'true' && steps.inspect.outputs.mode == 'full'
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-          OPENAI_MODEL: ${{ github.event.inputs.model || env.DEFAULT_MODEL }}
-          CHANGELOG_FILE: ${{ github.event.inputs.changelog_file || env.CHANGELOG_FILE }}
-          DRY_RUN: ${{ github.event.inputs.dry_run || 'false' }}
+        run: python scripts/project_understanding.py
 
-      # ── Stage 2: AI updates Bruno collection ────────────────────────────────
-      - name: 📁 Stage 2 — AI updates Bruno collection
-        run: python scripts/update_collection.py --stage collection
+      - name: Generate Bruno collection from changelog
+        if: steps.inspect.outputs.should_run == 'true' && steps.inspect.outputs.mode == 'full'
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-          OPENAI_MODEL: ${{ github.event.inputs.model || env.DEFAULT_MODEL }}
-          COLLECTION_DIR: ${{ github.event.inputs.collection_dir || env.COLLECTION_DIR }}
-          CHANGELOG_FILE: ${{ github.event.inputs.changelog_file || env.CHANGELOG_FILE }}
-          DRY_RUN: ${{ github.event.inputs.dry_run || 'false' }}
+        run: python scripts/generate_bru_from_changelog.py
 
-      # ── Commit both outputs in one commit ───────────────────────────────────
-      - name: 🔍 Check for generated changes
-        id: check_changes
-        run: |
-          COLLECTION_DIR="${{ github.event.inputs.collection_dir || env.COLLECTION_DIR }}"
-
-          # Stage only generated artifacts
-          git add CHANGELOG.md "$COLLECTION_DIR"
-
-          if git diff --cached --quiet; then
-            echo "changed=false" >> "$GITHUB_OUTPUT"
-            echo "ℹ️ No generated changes detected."
-          else
-            echo "changed=true" >> "$GITHUB_OUTPUT"
-            echo "📄 Generated changes:"
-            git diff --cached --name-only
-          fi
-
-      - name: 💾 Commit updated collection
-        if: >
-          steps.check_changes.outputs.changed == 'true' &&
-          github.event.inputs.dry_run != 'true'
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-
-          git commit -m "🤖 chore: auto-update Bruno API collection
-
-          Model     : ${{ github.event.inputs.model || env.DEFAULT_MODEL }}
-          Trigger   : ${{ github.event_name }}
-          Ref       : ${{ github.ref_name }}
-          Commit SHA: ${{ github.sha }}"
-
-          git push
-
-      - name: 🧪 Dry run summary
-        if: github.event.inputs.dry_run == 'true'
-        run: |
-          echo "=== DRY RUN — diff that would have been committed ==="
-          git diff HEAD
-
-      - name: ✅ Nothing to update
-        if: steps.check_changes.outputs.changed == 'false'
-        run: echo "Changelog and collection are already up to date."
+      - name: Sync Bruno collection from changelog
+        if: steps.inspect.outputs.should_run == 'true' && steps.inspect.outputs.mode == 'sync'
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: python scripts/changelog_bru_sync.py
