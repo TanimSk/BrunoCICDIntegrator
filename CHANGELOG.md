@@ -121,3 +121,15 @@ This analysis closely follows observed files, commit messages, and provided docu
 - server/food/views.py: Added CategoryAPIView for GET requests with query param 'view=catagory' to list distinct food categories, or 'catagory=<name>' to list foods by category; enhanced FoodListCreateView GET to include total food count and sum of calories of available foods in response analysis.
 - server/food/urls.py: Added route 'catagory/' for CategoryAPIView to serve food category related GET requests.
 - server/food/tests.py: Added API test cases verifying food list retrieval with analysis data (total and available calories), and CategoryAPIView behavior for both listing unique categories and fetching foods by category.
+
+
+## 2. Add food category and food-of-day API endpoints with related tests; update API collection workflow - [date: 2026-06-28 12:05:04]
+
+### Added:
+- None.
+
+### Modified:
+- .github/workflows/update-api-collection.yml: Refactor GitHub Actions workflow for updating API collection to dynamically inspect commit messages with 'sync bru' marker and run full or sync mode accordingly, including project understanding and collection generation steps.
+- server/food/views.py: Add CategoryAPIView with GET endpoint /food/catagory/ supporting query params 'view=catagory' to return unique categories and 'catagory=<name>' to return foods by category; add FoodOfDayAPIView with GET endpoint /food/food-of-day/ returning a random food item or 404 if none exist; both endpoints allow public access (no auth).
+- server/food/urls.py: Add URL routes for new API endpoints 'food-of-day/' (FoodOfDayAPIView) and 'catagory/' (CategoryAPIView) alongside existing food list and detail views.
+- server/food/tests.py: Add tests for CategoryAPIView to verify unique category listing with 'view=catagory' and foods filtered by category name; add tests for FoodOfDayAPIView to check 404 response with no foods and successful random food retrieval.
